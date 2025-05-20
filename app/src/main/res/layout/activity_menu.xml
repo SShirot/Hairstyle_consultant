@@ -23,6 +23,14 @@
         android:layout_marginBottom="16dp"/>
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/manageProductsButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Manage Products"
+        android:padding="16dp"
+        android:layout_marginBottom="16dp"/>
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/addProductButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

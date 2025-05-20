@@ -13,10 +13,16 @@ public class MenuActivity extends AppCompatActivity {
         setContentView(R.layout.activity_menu);
 
         MaterialButton chatButton = findViewById(R.id.chatButton);
+        MaterialButton manageProductsButton = findViewById(R.id.manageProductsButton);
         MaterialButton addProductButton = findViewById(R.id.addProductButton);
 
         chatButton.setOnClickListener(v -> {
             Intent intent = new Intent(MenuActivity.this, ChatActivity.class);
+            startActivity(intent);
+        });
+
+        manageProductsButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MenuActivity.this, ManageProductsActivity.class);
             startActivity(intent);
         });
 

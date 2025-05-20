@@ -35,7 +35,7 @@ public class ChatActivity extends AppCompatActivity {
     private List<ChatMessage> messages;
     private GenerativeModelFutures model;
     private ProductService productService;
-    private List<Product> allProducts;
+    private String allProductsInfo;
     private static final String SYSTEM_PROMPT = "You are an expert hairstyle consultant AI assistant. Your role is to provide personalized hairstyle recommendations and advice.";
     private static final String QUERY_ANALYSIS_PROMPT = "Analyze if the following user query is asking about products or services. " +
             "Respond with only 'YES' if the query is about products/services, or 'NO' if it's about hairstyle advice or general questions. " +
@@ -70,35 +70,31 @@ public class ChatActivity extends AppCompatActivity {
         chatRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         chatRecyclerView.setAdapter(chatAdapter);
 
-        // Load products and initialize chat
-        loadProductsAndInitializeChat();
+        // Load all products first
+        loadAllProducts();
     }
 
-    private void loadProductsAndInitializeChat() {
+    private void loadAllProducts() {
         productService.getAllProducts()
             .addOnSuccessListener(queryDocumentSnapshots -> {
-                allProducts = new ArrayList<>();
+                StringBuilder productInfo = new StringBuilder("Available Products:\n\n");
                 for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                     Product product = document.toObject(Product.class);
-                    allProducts.add(product);
-                }
-                
-                // Create product knowledge base
-                StringBuilder productKnowledge = new StringBuilder("Available Products:\n\n");
-                for (Product product : allProducts) {
-                    productKnowledge.append("Name: ").append(product.getName())
+                    productInfo.append("Name: ").append(product.getName())
+                            .append("\nBrand: ").append(product.getBrand())
                             .append("\nDescription: ").append(product.getDescription())
-                            .append("\nPrice: $").append(product.getPrice())
-                            .append("\nStock: ").append(product.getStockAmount())
+                            .append("\nPrice: $").append(String.format("%.2f", product.getPrice()))
+                            .append("\nStock Amount: ").append(product.getStockAmount())
                             .append("\nCategory: ").append(product.getCategory())
                             .append("\nAvailable: ").append(product.isAvailable() ? "Yes" : "No")
+                            .append("\nImage URL: ").append(product.getImageUrl())
                             .append("\n\n");
                 }
-
-                // Add welcome message with product knowledge
-                String welcomeMessage = "Hello! I'm your AI hairstyle consultant. I can help you find the perfect hairstyle based on your face shape, hair type, and preferences. " +
-                        "I also have information about our products and can help you choose the right ones for your needs. What would you like to know?";
+                allProductsInfo = productInfo.toString();
                 
+                // Add welcome message with product availability
+                String welcomeMessage = "Hello! I'm your AI hairstyle consultant. I can help you find the perfect hairstyle based on your face shape, hair type, and preferences. " +
+                        "I also have information about our products and can help you find the right one for your needs. What would you like to know?";
                 messages.add(new ChatMessage(welcomeMessage, false));
                 chatAdapter.notifyDataSetChanged();
 
@@ -106,43 +102,30 @@ public class ChatActivity extends AppCompatActivity {
                 sendButton.setOnClickListener(v -> {
                     String message = messageInput.getText().toString().trim();
                     if (!message.isEmpty()) {
-                        sendMessage(message, productKnowledge.toString());
+                        sendMessage(message);
                         messageInput.setText("");
                     }
                 });
             })
             .addOnFailureListener(e -> {
                 Toast.makeText(ChatActivity.this, "Error loading products: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                // Initialize chat without products
-                initializeChatWithoutProducts();
+                // Still show welcome message even if products fail to load
+                messages.add(new ChatMessage("Hello! I'm your AI hairstyle consultant. I can help you find the perfect hairstyle based on your face shape, hair type, and preferences. What would you like to know?", false));
+                chatAdapter.notifyDataSetChanged();
             });
     }
 
-    private void initializeChatWithoutProducts() {
-        String welcomeMessage = "Hello! I'm your AI hairstyle consultant. I can help you find the perfect hairstyle based on your face shape, hair type, and preferences. What would you like to know?";
-        messages.add(new ChatMessage(welcomeMessage, false));
-        chatAdapter.notifyDataSetChanged();
-
-        sendButton.setOnClickListener(v -> {
-            String message = messageInput.getText().toString().trim();
-            if (!message.isEmpty()) {
-                sendMessage(message, null);
-                messageInput.setText("");
-            }
-        });
-    }
-
-    private void sendMessage(String message, String productKnowledge) {
+    private void sendMessage(String message) {
         // Add user message to chat
         messages.add(new ChatMessage(message, true));
         chatAdapter.notifyDataSetChanged();
         chatRecyclerView.smoothScrollToPosition(messages.size() - 1);
 
         // Analyze if the query is about products
-        analyzeQuery(message, productKnowledge);
+        analyzeQuery(message);
     }
 
-    private void analyzeQuery(String query, String productKnowledge) {
+    private void analyzeQuery(String query) {
         Content content = new Content.Builder()
             .addText(QUERY_ANALYSIS_PROMPT + query)
             .build();
@@ -153,7 +136,7 @@ public class ChatActivity extends AppCompatActivity {
             public void onSuccess(GenerateContentResponse result) {
                 String analysis = result.getText().trim();
                 if (analysis.equalsIgnoreCase("YES")) {
-                    getAIResponse(query, productKnowledge);
+                    getAIResponse(query, allProductsInfo);
                 } else {
                     getAIResponse(query, null);
                 }
