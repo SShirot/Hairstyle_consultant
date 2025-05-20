@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "889321424995",
+    "project_id": "hairstyleconsultant",
+    "storage_bucket": "hairstyleconsultant.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889321424995:android:5ff538f50df168c0c0d056",
+        "android_client_info": {
+          "package_name": "com.example.hairstyle_consultant"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAF26m5D50Z4bXoi8sOFksctIsw-xF3UNc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
