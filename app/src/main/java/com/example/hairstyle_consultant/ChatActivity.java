@@ -36,10 +36,14 @@ public class ChatActivity extends AppCompatActivity {
     private GenerativeModelFutures model;
     private ProductService productService;
     private String allProductsInfo;
-    private static final String SYSTEM_PROMPT = "You are an expert hairstyle consultant AI assistant. Your role is to provide personalized hairstyle recommendations and advice.";
-    private static final String QUERY_ANALYSIS_PROMPT = "Analyze if the following user query is asking about products or services. " +
-            "Respond with only 'YES' if the query is about products/services, or 'NO' if it's about hairstyle advice or general questions. " +
-            "Query: ";
+    private static final String SYSTEM_PROMPT = "Bạn là một chuyên gia tư vấn tóc thân thiện. " +
+            "Hãy trả lời ngắn gọn, súc tích bằng tiếng Việt. " +
+            "Khi người dùng hỏi về sản phẩm, hãy sử dụng thông tin sản phẩm sau để trả lời:\n\n" +
+            "%s\n\n" +
+            "Lưu ý: Chỉ đề cập đến các sản phẩm có trong danh sách trên. " +
+            "Nếu không có sản phẩm phù hợp, hãy nói rõ điều đó.";
+    private static final String QUERY_ANALYSIS_PROMPT = "Phân tích câu hỏi sau có liên quan đến sản phẩm tóc không. " +
+            "Chỉ trả lời 'YES' hoặc 'NO':\n\n%s";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
