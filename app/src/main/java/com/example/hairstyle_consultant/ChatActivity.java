@@ -53,7 +53,9 @@ public class ChatActivity extends AppCompatActivity {
         // Initialize back button
         ImageButton backButton = findViewById(R.id.backButton);
         backButton.setOnClickListener(v -> {
-            Intent intent = new Intent(ChatActivity.this, MenuActivity.class);
+            // Navigate back to main screen
+            Intent intent = new Intent(ChatActivity.this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             finish();
         });

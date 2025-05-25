@@ -1,14 +1,34 @@
 package com.example.hairstyle_consultant.models;
 
+import com.google.firebase.firestore.Exclude;
+import com.google.firebase.firestore.PropertyName;
+
 public class Product {
+    @Exclude
     private String id;
+    
+    @PropertyName("name")
     private String name;
+    
+    @PropertyName("description")
     private String description;
+    
+    @PropertyName("price")
     private double price;
+    
+    @PropertyName("stockAmount")
     private int stockAmount;
+    
+    @PropertyName("category")
     private String category;
+    
+    @PropertyName("brand")
     private String brand;
+    
+    @PropertyName("imageUrl")
     private String imageUrl;
+    
+    @PropertyName("isAvailable")
     private boolean isAvailable;
 
     // Default constructor required for Firestore
@@ -29,10 +49,12 @@ public class Product {
     }
 
     // Getters and Setters
+    @Exclude
     public String getId() {
         return id;
     }
 
+    @Exclude
     public void setId(String id) {
         this.id = id;
     }

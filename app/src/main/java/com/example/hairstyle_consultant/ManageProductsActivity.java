@@ -33,7 +33,9 @@ public class ManageProductsActivity extends AppCompatActivity {
         // Initialize back button
         ImageButton backButton = findViewById(R.id.backButton);
         backButton.setOnClickListener(v -> {
-            Intent intent = new Intent(ManageProductsActivity.this, MenuActivity.class);
+            // Navigate back to main screen
+            Intent intent = new Intent(ManageProductsActivity.this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             finish();
         });
@@ -72,9 +74,20 @@ public class ManageProductsActivity extends AppCompatActivity {
             .addOnSuccessListener(queryDocumentSnapshots -> {
                 products.clear();
                 for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                    Product product = document.toObject(Product.class);
-                    product.setId(document.getId()); // Set the document ID
-                    products.add(product);
+                    try {
+                        // Get the document ID first
+                        String documentId = document.getId();
+                        
+                        // Convert the document to a Product object
+                        Product product = document.toObject(Product.class);
+                        if (product != null) {
+                            // Set the document ID as a string
+                            product.setId(documentId);
+                            products.add(product);
+                        }
+                    } catch (Exception e) {
+                        Toast.makeText(this, "Error loading product: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
                 }
                 productAdapter.notifyDataSetChanged();
             })
@@ -96,13 +109,17 @@ public class ManageProductsActivity extends AppCompatActivity {
     }
 
     private void onDeleteProduct(Product product) {
-        productService.deleteProduct(product.getId())
-            .addOnSuccessListener(aVoid -> {
-                Toast.makeText(this, "Product deleted successfully", Toast.LENGTH_SHORT).show();
-                loadProducts(); // Reload the list
-            })
-            .addOnFailureListener(e -> {
-                Toast.makeText(this, "Error deleting product: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            });
+        if (product.getId() != null) {
+            productService.deleteProduct(product.getId())
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Product deleted successfully", Toast.LENGTH_SHORT).show();
+                    loadProducts(); // Reload the list
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error deleting product: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+        } else {
+            Toast.makeText(this, "Error: Product ID is missing", Toast.LENGTH_SHORT).show();
+        }
     }
 } 

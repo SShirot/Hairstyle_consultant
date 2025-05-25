@@ -48,7 +48,13 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:32.7.2"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-database")
+    
+    // Google Play Services dependencies
     implementation("com.google.android.gms:play-services-auth:20.7.0")
+    implementation("com.google.android.gms:play-services-base:18.3.0")
+    implementation("com.google.android.gms:play-services-basement:18.3.0")
+    implementation("com.google.android.gms:play-services-tasks:18.1.0")
+    implementation("com.google.android.gms:play-services-safetynet:18.0.1")
 
     // Gemini AI dependency
     implementation("com.google.ai.client.generativeai:generativeai:0.2.1")
