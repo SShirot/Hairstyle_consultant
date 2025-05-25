@@ -23,6 +23,8 @@ import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.database.DatabaseError;
 import com.google.android.gms.security.ProviderInstaller;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.ValueEventListener;
 
 public class AuthenticationManager {
     private static final String TAG = "AuthenticationManager";
@@ -148,38 +150,42 @@ public class AuthenticationManager {
             return;
         }
 
-        Log.d(TAG, "Getting user data for ID: " + userId);
-        DatabaseReference userRef = database.getReference("users").child(userId);
-
-        userRef.addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
-                if (snapshot.exists()) {
-                    User user = snapshot.getValue(User.class);
-                    if (user != null) {
-                        Log.d(TAG, "User data retrieved successfully");
-                        currentUserData = user;
-                        listener.onSuccess(user);
+        try {
+            DatabaseReference userRef = database.getReference().child("users").child(userId);
+            userRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    if (dataSnapshot.exists()) {
+                        User user = dataSnapshot.getValue(User.class);
+                        if (user != null) {
+                            listener.onSuccess(user);
+                        } else {
+                            listener.onFailure("Failed to parse user data");
+                        }
                     } else {
-                        Log.e(TAG, "Failed to convert snapshot to User object");
-                        listener.onFailure("Failed to parse user data");
+                        listener.onFailure("User data not found");
                     }
-                } else {
-                    Log.e(TAG, "User data not found in database");
-                    listener.onFailure("User data not found");
                 }
-            }
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Log.e(TAG, "Error getting user data: " + error.getMessage());
-                listener.onFailure("Database error: " + error.getMessage());
-            }
-        });
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+                    Log.e(TAG, "Error getting user data: " + databaseError.getMessage());
+                    listener.onFailure("Database error: " + databaseError.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Exception while getting user data: " + e.getMessage());
+            listener.onFailure("Error: " + e.getMessage());
+        }
     }
 
     public User getCurrentUserData() {
-        return currentUserData;
+        FirebaseUser currentUser = getCurrentUser();
+        if (currentUser == null) {
+            return null;
+        }
+        // TODO: Implement caching mechanism for user data
+        return null;
     }
 
     public void logout() {
@@ -304,7 +310,7 @@ public class AuthenticationManager {
 
     public interface OnUserDataListener {
         void onSuccess(User user);
-        void onFailure(String errorMessage);
+        void onFailure(String error);
     }
 
     public interface OnAuthCompleteListener {
