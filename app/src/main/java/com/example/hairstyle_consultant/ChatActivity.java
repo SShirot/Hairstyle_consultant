@@ -47,6 +47,7 @@ public class ChatActivity extends AppCompatActivity {
     private AuthenticationManager authManager;
     private DatabaseReference userRef;
     private User currentUser;
+    private List<String> conversationHistory;
 
     private static final String SYSTEM_PROMPT = "Bạn là một chuyên gia tư vấn tóc thân thiện và chuyên nghiệp. " +
             "Hãy trả lời ngắn gọn, súc tích bằng tiếng Việt. " +
@@ -59,12 +60,16 @@ public class ChatActivity extends AppCompatActivity {
             "- Chỉ đề xuất sản phẩm có trong danh sách\n" +
             "- Giải thích lý do tại sao sản phẩm phù hợp với tóc của họ\n" +
             "- Nếu không có sản phẩm phù hợp, hãy nói rõ và đề xuất giải pháp thay thế\n" +
-            "- Luôn thân thiện và chuyên nghiệp trong cách trả lời";
+            "- Luôn thân thiện và chuyên nghiệp trong cách trả lời\n" +
+            "- Duy trì ngữ cảnh cuộc hội thoại và tham chiếu đến các câu hỏi trước đó khi phù hợp";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
+
+        // Initialize conversation history
+        conversationHistory = new ArrayList<>();
 
         // Initialize back button
         ImageButton backButton = findViewById(R.id.backButton);
@@ -177,6 +182,9 @@ public class ChatActivity extends AppCompatActivity {
                                 messages.add(new ChatMessage(welcomeMessage, false));
                                 chatAdapter.notifyDataSetChanged();
 
+                                // Add welcome message to conversation history
+                                conversationHistory.add(welcomeMessage);
+
                                 // Set up send button click listener
                                 sendButton.setOnClickListener(v -> {
                                     String message = messageInput.getText().toString().trim();
@@ -210,35 +218,52 @@ public class ChatActivity extends AppCompatActivity {
         chatAdapter.notifyDataSetChanged();
         chatRecyclerView.smoothScrollToPosition(messages.size() - 1);
 
+        // Add user message to conversation history
+        conversationHistory.add("User: " + message);
+
         // Get AI response with personalized context
         getAIResponse(message, userInfo);
     }
 
     private void getAIResponse(String userMessage, String userInfo) {
-        StringBuilder prompt = new StringBuilder(String.format(SYSTEM_PROMPT, 
-            userInfo,
-            allProductsInfo
-        ));
-        prompt.append("\n\nUser: ").append(userMessage);
+        // Create a new content with the entire conversation history
+        Content.Builder contentBuilder = new Content.Builder();
+        StringBuilder logContent = new StringBuilder("Conversation History:\n");
+        
+        // Add system prompt and user info first
+        String systemPrompt = String.format(SYSTEM_PROMPT, userInfo, allProductsInfo);
+        contentBuilder.addText(systemPrompt);
+        logContent.append("System Prompt: ").append(systemPrompt).append("\n");
 
-        Content content = new Content.Builder()
-            .addText(prompt.toString())
-            .build();
+        // Add conversation history
+        for (String message : conversationHistory) {
+            contentBuilder.addText(message);
+            logContent.append("Message: ").append(message).append("\n");
+        }
 
-        ListenableFuture<GenerateContentResponse> response = model.generateContent(content);
+        // Log the final content being sent to Gemini
+        Log.d(TAG, "Sending to Gemini:\n" + logContent.toString());
+
+        ListenableFuture<GenerateContentResponse> response = model.generateContent(contentBuilder.build());
         Futures.addCallback(response, new FutureCallback<GenerateContentResponse>() {
             @Override
             public void onSuccess(GenerateContentResponse result) {
                 String aiResponse = result.getText();
+                Log.d(TAG, "Received from Gemini: " + aiResponse);
+                
                 runOnUiThread(() -> {
                     messages.add(new ChatMessage(aiResponse, false));
                     chatAdapter.notifyDataSetChanged();
                     chatRecyclerView.smoothScrollToPosition(messages.size() - 1);
+
+                    // Add AI response to conversation history
+                    conversationHistory.add("Assistant: " + aiResponse);
                 });
             }
 
             @Override
             public void onFailure(Throwable t) {
+                Log.e(TAG, "Error from Gemini: " + t.getMessage());
                 runOnUiThread(() -> {
                     Toast.makeText(ChatActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
                 });
