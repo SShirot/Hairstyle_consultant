@@ -73,15 +73,8 @@
                         android:id="@+id/profileButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="View Profile"
+                        android:text="Profile"
                         app:icon="@android:drawable/ic_menu_myplaces"/>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/hairInfoButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Hair Info"
-                        app:icon="@android:drawable/ic_menu_edit"/>
 
                 </LinearLayout>
 
@@ -92,8 +85,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Logout"
-                app:icon="@android:drawable/ic_lock_power_off"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                app:icon="@android:drawable/ic_menu_close_clear_cancel"/>
 
         </LinearLayout>
 
