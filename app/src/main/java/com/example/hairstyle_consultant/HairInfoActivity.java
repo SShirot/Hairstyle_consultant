@@ -135,6 +135,10 @@ public class HairInfoActivity extends AppCompatActivity {
     }
 
     private void saveHairInfo() {
+        if (!validateInputs()) {
+            return;
+        }
+
         String hairStyle = hairStyleInput.getText().toString().trim();
         String hairQuality = hairQualityInput.getText().toString().trim();
         String hairLength = hairLengthInput.getText().toString().trim();
@@ -142,23 +146,30 @@ public class HairInfoActivity extends AppCompatActivity {
         String hairTexture = hairTextureInput.getText().toString().trim();
         String hairConcerns = hairConcernsInput.getText().toString().trim();
 
-        java.util.Map<String, Object> updates = new java.util.HashMap<>();
-        updates.put("hairStyle", hairStyle);
-        updates.put("hairQuality", hairQuality);
-        updates.put("hairLength", hairLength);
-        updates.put("hairColor", hairColor);
-        updates.put("hairTexture", hairTexture);
-        updates.put("hairConcerns", hairConcerns);
+        // Show loading indicator
+        saveButton.setEnabled(false);
+        saveButton.setText("Saving...");
 
-        userRef.updateChildren(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Hair information saved successfully");
-                    Toast.makeText(HairInfoActivity.this, "Hair information saved!", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error saving hair information: " + e.getMessage());
-                    Toast.makeText(HairInfoActivity.this, "Error saving hair information: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        authManager.updateHairInfo(hairStyle, hairQuality, hairLength, hairColor, hairTexture, hairConcerns,
+                new AuthenticationManager.OnUserDataListener() {
+                    @Override
+                    public void onSuccess(User user) {
+                        runOnUiThread(() -> {
+                            saveButton.setEnabled(true);
+                            saveButton.setText("Save");
+                            Toast.makeText(HairInfoActivity.this, "Hair information saved successfully", Toast.LENGTH_SHORT).show();
+                            finish();
+                        });
+                    }
+
+                    @Override
+                    public void onFailure(String error) {
+                        runOnUiThread(() -> {
+                            saveButton.setEnabled(true);
+                            saveButton.setText("Save");
+                            Toast.makeText(HairInfoActivity.this, "Error: " + error, Toast.LENGTH_SHORT).show();
+                        });
+                    }
                 });
     }
 } 

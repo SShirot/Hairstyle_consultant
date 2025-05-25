@@ -20,11 +20,6 @@ import com.example.hairstyle_consultant.auth.AuthenticationManager;
 import com.example.hairstyle_consultant.models.User;
 import com.example.hairstyle_consultant.utils.DatabaseInitializer;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -34,7 +29,6 @@ public class MainActivity extends AppCompatActivity {
     private Button productsButton;
     private Button profileButton;
     private Button logoutButton;
-    private Button hairInfoButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         // Initialize views
         initializeViews();
         setupClickListeners();
-        loadUserData(currentUser);
+        updateWelcomeMessage();
 
         // Initialize the product database with sample data
         DatabaseInitializer databaseInitializer = new DatabaseInitializer();
@@ -78,31 +72,32 @@ public class MainActivity extends AppCompatActivity {
         productsButton = findViewById(R.id.productsButton);
         profileButton = findViewById(R.id.profileButton);
         logoutButton = findViewById(R.id.logoutButton);
-        hairInfoButton = findViewById(R.id.hairInfoButton);
     }
 
-    private void loadUserData(FirebaseUser currentUser) {
-        DatabaseReference userRef = FirebaseDatabase.getInstance()
-                .getReference("users")
-                .child(currentUser.getUid());
-
-        userRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    User user = dataSnapshot.getValue(User.class);
-                    if (user != null) {
+    private void updateWelcomeMessage() {
+        User userData = authManager.getCurrentUserData();
+        if (userData != null) {
+            welcomeText.setText("Welcome, " + userData.getFullName());
+        } else {
+            // If no cached data, fetch from database
+            authManager.getUserData(authManager.getCurrentUser().getUid(), new AuthenticationManager.OnUserDataListener() {
+                @Override
+                public void onSuccess(User user) {
+                    runOnUiThread(() -> {
                         welcomeText.setText("Welcome, " + user.getFullName());
-                    }
+                    });
                 }
-            }
 
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.e(TAG, "Error loading user data", databaseError.toException());
-                Toast.makeText(MainActivity.this, "Error loading user data", Toast.LENGTH_SHORT).show();
-            }
-        });
+                @Override
+                public void onFailure(String error) {
+                    Log.e(TAG, "Error loading user data: " + error);
+                    runOnUiThread(() -> {
+                        welcomeText.setText("Welcome!");
+                        Toast.makeText(MainActivity.this, "Error loading user data", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            });
+        }
     }
 
     private void setupClickListeners() {
@@ -115,12 +110,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         profileButton.setOnClickListener(v -> {
-            // TODO: Implement profile activity
-            Toast.makeText(this, "Profile feature coming soon!", Toast.LENGTH_SHORT).show();
-        });
-
-        hairInfoButton.setOnClickListener(v -> {
-            startActivity(new Intent(MainActivity.this, HairInfoActivity.class));
+            startActivity(new Intent(MainActivity.this, ProfileActivity.class));
         });
 
         logoutButton.setOnClickListener(v -> {
@@ -130,6 +120,13 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
             finish();
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Update welcome message when returning from other activities
+        updateWelcomeMessage();
     }
 
     @Override

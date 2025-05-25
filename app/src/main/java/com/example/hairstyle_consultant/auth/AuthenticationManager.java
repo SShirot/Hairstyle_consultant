@@ -31,6 +31,7 @@ public class AuthenticationManager {
     private FirebaseAuth auth;
     private FirebaseDatabase database;
     private boolean isInitialized = false;
+    private User currentUserData; // Store current user data
 
     public AuthenticationManager() {
         // Private constructor to prevent instantiation
@@ -85,6 +86,102 @@ public class AuthenticationManager {
         }
     }
 
+    public void loginUser(String email, String password, OnAuthResultListener listener) {
+        if (!isInitialized) {
+            Log.e("AuthManager", "Cannot login: AuthenticationManager not initialized");
+            if (listener != null) {
+                listener.onFailure(new Exception("Authentication not initialized"));
+            }
+            return;
+        }
+
+        try {
+            auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = auth.getCurrentUser();
+                        if (user != null) {
+                            Log.d("AuthManager", "User logged in successfully: " + user.getUid());
+                            // Get user data from database
+                            getUserData(user.getUid(), new OnUserDataListener() {
+                                @Override
+                                public void onSuccess(User userData) {
+                                    currentUserData = userData;
+                                    if (listener != null) {
+                                        listener.onSuccess(user);
+                                    }
+                                }
+
+                                @Override
+                                public void onFailure(String error) {
+                                    Log.e("AuthManager", "Failed to get user data: " + error);
+                                    if (listener != null) {
+                                        listener.onFailure(new Exception("Failed to get user data: " + error));
+                                    }
+                                }
+                            });
+                        } else {
+                            Log.e("AuthManager", "Login successful but user is null");
+                            if (listener != null) {
+                                listener.onFailure(new Exception("User is null after successful login"));
+                            }
+                        }
+                    } else {
+                        Log.e("AuthManager", "Login failed: " + task.getException().getMessage());
+                        if (listener != null) {
+                            listener.onFailure(task.getException());
+                        }
+                    }
+                });
+        } catch (Exception e) {
+            Log.e("AuthManager", "Error during login: " + e.getMessage());
+            if (listener != null) {
+                listener.onFailure(e);
+            }
+        }
+    }
+
+    public void getUserData(String userId, OnUserDataListener listener) {
+        if (!isInitialized) {
+            Log.e(TAG, "Cannot get user data: AuthenticationManager not initialized");
+            listener.onFailure("Authentication system not initialized");
+            return;
+        }
+
+        Log.d(TAG, "Getting user data for ID: " + userId);
+        DatabaseReference userRef = database.getReference("users").child(userId);
+
+        userRef.addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    User user = snapshot.getValue(User.class);
+                    if (user != null) {
+                        Log.d(TAG, "User data retrieved successfully");
+                        currentUserData = user;
+                        listener.onSuccess(user);
+                    } else {
+                        Log.e(TAG, "Failed to convert snapshot to User object");
+                        listener.onFailure("Failed to parse user data");
+                    }
+                } else {
+                    Log.e(TAG, "User data not found in database");
+                    listener.onFailure("User data not found");
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e(TAG, "Error getting user data: " + error.getMessage());
+                listener.onFailure("Database error: " + error.getMessage());
+            }
+        });
+    }
+
+    public User getCurrentUserData() {
+        return currentUserData;
+    }
+
     public void logout() {
         if (!isInitialized) {
             Log.e("AuthManager", "Cannot logout: AuthenticationManager not initialized");
@@ -94,6 +191,7 @@ public class AuthenticationManager {
         try {
             if (auth != null) {
                 auth.signOut();
+                currentUserData = null; // Clear user data on logout
                 Log.d("AuthManager", "User logged out successfully");
             } else {
                 Log.e("AuthManager", "Cannot logout: FirebaseAuth is null");
@@ -114,46 +212,6 @@ public class AuthenticationManager {
         } catch (Exception e) {
             Log.e("AuthManager", "Error getting current user: " + e.getMessage());
             return null;
-        }
-    }
-
-    public void loginUser(String email, String password, OnAuthResultListener listener) {
-        if (!isInitialized) {
-            Log.e("AuthManager", "Cannot login: AuthenticationManager not initialized");
-            if (listener != null) {
-                listener.onFailure(new Exception("Authentication not initialized"));
-            }
-            return;
-        }
-
-        try {
-            auth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        FirebaseUser user = auth.getCurrentUser();
-                        if (user != null) {
-                            Log.d("AuthManager", "User logged in successfully: " + user.getUid());
-                            if (listener != null) {
-                                listener.onSuccess(user);
-                            }
-                        } else {
-                            Log.e("AuthManager", "Login successful but user is null");
-                            if (listener != null) {
-                                listener.onFailure(new Exception("User is null after successful login"));
-                            }
-                        }
-                    } else {
-                        Log.e("AuthManager", "Login failed: " + task.getException().getMessage());
-                        if (listener != null) {
-                            listener.onFailure(task.getException());
-                        }
-                    }
-                });
-        } catch (Exception e) {
-            Log.e("AuthManager", "Error during login: " + e.getMessage());
-            if (listener != null) {
-                listener.onFailure(e);
-            }
         }
     }
 
@@ -244,6 +302,11 @@ public class AuthenticationManager {
         }
     }
 
+    public interface OnUserDataListener {
+        void onSuccess(User user);
+        void onFailure(String errorMessage);
+    }
+
     public interface OnAuthCompleteListener {
         void onSuccess(FirebaseUser user);
         void onFailure(String errorMessage);
@@ -252,5 +315,90 @@ public class AuthenticationManager {
     public interface OnAuthResultListener {
         void onSuccess(FirebaseUser user);
         void onFailure(Exception e);
+    }
+
+    public void updateUserData(User updatedUser, OnUserDataListener listener) {
+        if (!isInitialized) {
+            Log.e(TAG, "Cannot update user data: AuthenticationManager not initialized");
+            listener.onFailure("Authentication system not initialized");
+            return;
+        }
+
+        if (auth.getCurrentUser() == null) {
+            Log.e(TAG, "Cannot update user data: No user logged in");
+            listener.onFailure("No user logged in");
+            return;
+        }
+
+        String userId = auth.getCurrentUser().getUid();
+        Log.d(TAG, "Updating user data for ID: " + userId);
+
+        // Create a map with all user data
+        java.util.Map<String, Object> userData = new java.util.HashMap<>();
+        userData.put("userId", updatedUser.getUserId());
+        userData.put("email", updatedUser.getEmail());
+        userData.put("fullName", updatedUser.getFullName());
+        userData.put("phoneNumber", updatedUser.getPhoneNumber());
+        userData.put("role", updatedUser.getRole());
+        userData.put("hairStyle", updatedUser.getHairStyle());
+        userData.put("hairQuality", updatedUser.getHairQuality());
+        userData.put("hairLength", updatedUser.getHairLength());
+        userData.put("hairColor", updatedUser.getHairColor());
+        userData.put("hairTexture", updatedUser.getHairTexture());
+        userData.put("hairConcerns", updatedUser.getHairConcerns());
+
+        DatabaseReference userRef = database.getReference("users").child(userId);
+        userRef.updateChildren(userData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User data updated successfully");
+                    // Update cached data
+                    currentUserData = updatedUser;
+                    listener.onSuccess(updatedUser);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error updating user data: " + e.getMessage());
+                    listener.onFailure("Failed to update user data: " + e.getMessage());
+                });
+    }
+
+    public void updateHairInfo(String hairStyle, String hairQuality, String hairLength, 
+                             String hairColor, String hairTexture, String hairConcerns, 
+                             OnUserDataListener listener) {
+        if (!isInitialized || auth.getCurrentUser() == null) {
+            listener.onFailure("Authentication system not initialized or no user logged in");
+            return;
+        }
+
+        String userId = auth.getCurrentUser().getUid();
+        Log.d(TAG, "Updating hair info for user ID: " + userId);
+
+        // Create a map with hair information
+        java.util.Map<String, Object> hairData = new java.util.HashMap<>();
+        hairData.put("hairStyle", hairStyle);
+        hairData.put("hairQuality", hairQuality);
+        hairData.put("hairLength", hairLength);
+        hairData.put("hairColor", hairColor);
+        hairData.put("hairTexture", hairTexture);
+        hairData.put("hairConcerns", hairConcerns);
+
+        DatabaseReference userRef = database.getReference("users").child(userId);
+        userRef.updateChildren(hairData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Hair info updated successfully");
+                    // Update cached data
+                    if (currentUserData != null) {
+                        currentUserData.setHairStyle(hairStyle);
+                        currentUserData.setHairQuality(hairQuality);
+                        currentUserData.setHairLength(hairLength);
+                        currentUserData.setHairColor(hairColor);
+                        currentUserData.setHairTexture(hairTexture);
+                        currentUserData.setHairConcerns(hairConcerns);
+                    }
+                    listener.onSuccess(currentUserData);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error updating hair info: " + e.getMessage());
+                    listener.onFailure("Failed to update hair info: " + e.getMessage());
+                });
     }
 } 
