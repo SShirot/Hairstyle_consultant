@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
         User userData = authManager.getCurrentUserData();
         if (userData != null) {
             welcomeText.setText("Welcome, " + userData.getFullName());
+            updateUIForUserRole(userData);
         } else {
             // If no cached data, fetch from database
             authManager.getUserData(authManager.getCurrentUser().getUid(), new AuthenticationManager.OnUserDataListener() {
@@ -85,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onSuccess(User user) {
                     runOnUiThread(() -> {
                         welcomeText.setText("Welcome, " + user.getFullName());
+                        updateUIForUserRole(user);
                     });
                 }
 
@@ -97,6 +99,14 @@ public class MainActivity extends AppCompatActivity {
                     });
                 }
             });
+        }
+    }
+
+    private void updateUIForUserRole(User user) {
+        if (user != null && "admin".equalsIgnoreCase(user.getRole())) {
+            productsButton.setVisibility(View.VISIBLE);
+        } else {
+            productsButton.setVisibility(View.GONE);
         }
     }
 
@@ -125,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // Update welcome message when returning from other activities
+        // Update welcome message and UI when returning from other activities
         updateWelcomeMessage();
     }
 
