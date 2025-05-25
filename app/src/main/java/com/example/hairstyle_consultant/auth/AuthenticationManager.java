@@ -32,7 +32,7 @@ public class AuthenticationManager {
     private FirebaseDatabase database;
     private boolean isInitialized = false;
 
-    private AuthenticationManager() {
+    public AuthenticationManager() {
         // Private constructor to prevent instantiation
     }
 
@@ -177,6 +177,7 @@ public class AuthenticationManager {
                         if (firebaseUser != null) {
                             Log.d(TAG, "Firebase Auth: User ID: " + firebaseUser.getUid());
                             User user = new User(firebaseUser.getUid(), email, fullName, phoneNumber);
+                            user.setRole("user");
                             saveUserToDatabase(user, listener);
                         } else {
                             Log.e(TAG, "Firebase Auth: User is null after successful creation");
@@ -205,12 +206,27 @@ public class AuthenticationManager {
         Log.d(TAG, "Email: " + user.getEmail());
         Log.d(TAG, "Full Name: " + user.getFullName());
         Log.d(TAG, "Phone: " + user.getPhoneNumber());
+        Log.d(TAG, "Role: " + user.getRole());
 
         try {
             DatabaseReference userRef = database.getReference().child("users").child(user.getUserId());
             Log.d(TAG, "Database path: " + userRef.toString());
 
-            userRef.setValue(user)
+            // Create a map with all user data including null hair information
+            java.util.Map<String, Object> userData = new java.util.HashMap<>();
+            userData.put("userId", user.getUserId());
+            userData.put("email", user.getEmail());
+            userData.put("fullName", user.getFullName());
+            userData.put("phoneNumber", user.getPhoneNumber());
+            userData.put("role", user.getRole());
+            userData.put("hairStyle", null);
+            userData.put("hairQuality", null);
+            userData.put("hairLength", null);
+            userData.put("hairColor", null);
+            userData.put("hairTexture", null);
+            userData.put("hairConcerns", null);
+
+            userRef.setValue(userData)
                     .addOnSuccessListener(aVoid -> {
                         Log.i(TAG, "Database: User data saved successfully");
                         listener.onSuccess(auth.getCurrentUser());

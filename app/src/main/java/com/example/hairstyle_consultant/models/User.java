@@ -11,6 +11,7 @@ public class User {
     private String hairColor;
     private String hairTexture;
     private String hairConcerns;
+    private String role;
 
     // Default constructor required for Firebase
     public User() {
@@ -21,6 +22,7 @@ public class User {
         this.email = email;
         this.fullName = fullName;
         this.phoneNumber = phoneNumber;
+        this.role = "user";
     }
 
     // Getters and Setters
@@ -102,5 +104,13 @@ public class User {
 
     public void setHairConcerns(String hairConcerns) {
         this.hairConcerns = hairConcerns;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 } 

@@ -2,6 +2,7 @@ package com.example.hairstyle_consultant;
 
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -14,6 +15,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.android.material.button.MaterialButton;
 
 public class HairInfoActivity extends AppCompatActivity {
+    private static final String TAG = "HairInfoActivity";
     private EditText hairStyleInput, hairQualityInput, hairLengthInput, hairColorInput, hairTextureInput, hairConcernsInput;
     private MaterialButton saveButton;
     private AuthenticationManager authManager;
@@ -32,21 +34,104 @@ public class HairInfoActivity extends AppCompatActivity {
         hairConcernsInput = findViewById(R.id.hairConcernsInput);
         saveButton = findViewById(R.id.saveHairInfoButton);
 
-        authManager = new AuthenticationManager(this);
+        authManager = AuthenticationManager.getInstance();
+        authManager.initialize(this);
+
         FirebaseUser currentUser = authManager.getCurrentUser();
         if (currentUser == null) {
             Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
-        userRef = FirebaseDatabase.getInstance().getReference("users").child(currentUser.getUid());
+        userRef = FirebaseDatabase.getInstance("https://hairstyleconsultant-default-rtdb.asia-southeast1.firebasedatabase.app/")
+                .getReference("users")
+                .child(currentUser.getUid());
+
+        loadExistingHairInfo();
 
         saveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                saveHairInfo();
+                if (validateInputs()) {
+                    saveHairInfo();
+                }
             }
         });
+    }
+
+    private void loadExistingHairInfo() {
+        userRef.addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+            @Override
+            public void onDataChange(com.google.firebase.database.DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    User user = dataSnapshot.getValue(User.class);
+                    if (user != null) {
+                        hairStyleInput.setText(user.getHairStyle());
+                        hairQualityInput.setText(user.getHairQuality());
+                        hairLengthInput.setText(user.getHairLength());
+                        hairColorInput.setText(user.getHairColor());
+                        hairTextureInput.setText(user.getHairTexture());
+                        hairConcernsInput.setText(user.getHairConcerns());
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(com.google.firebase.database.DatabaseError databaseError) {
+                Log.e(TAG, "Error loading hair info: " + databaseError.getMessage());
+                Toast.makeText(HairInfoActivity.this, "Error loading hair information", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private boolean validateInputs() {
+        boolean isValid = true;
+        String errorMessage = "";
+
+        String hairStyle = hairStyleInput.getText().toString().trim();
+        if (TextUtils.isEmpty(hairStyle)) {
+            hairStyleInput.setError("Hair style is required");
+            isValid = false;
+        } else if (hairStyle.length() < 2) {
+            hairStyleInput.setError("Hair style must be at least 2 characters");
+            isValid = false;
+        }
+
+        String hairQuality = hairQualityInput.getText().toString().trim();
+        if (TextUtils.isEmpty(hairQuality)) {
+            hairQualityInput.setError("Hair quality is required");
+            isValid = false;
+        }
+
+        String hairLength = hairLengthInput.getText().toString().trim();
+        if (TextUtils.isEmpty(hairLength)) {
+            hairLengthInput.setError("Hair length is required");
+            isValid = false;
+        }
+
+        String hairColor = hairColorInput.getText().toString().trim();
+        if (TextUtils.isEmpty(hairColor)) {
+            hairColorInput.setError("Hair color is required");
+            isValid = false;
+        }
+
+        String hairTexture = hairTextureInput.getText().toString().trim();
+        if (TextUtils.isEmpty(hairTexture)) {
+            hairTextureInput.setError("Hair texture is required");
+            isValid = false;
+        }
+
+        String hairConcerns = hairConcernsInput.getText().toString().trim();
+        if (!TextUtils.isEmpty(hairConcerns) && hairConcerns.length() < 3) {
+            hairConcernsInput.setError("If provided, concerns should be at least 3 characters");
+            isValid = false;
+        }
+
+        if (!isValid) {
+            Toast.makeText(this, "Please fill in all required fields correctly", Toast.LENGTH_LONG).show();
+        }
+
+        return isValid;
     }
 
     private void saveHairInfo() {
@@ -57,14 +142,23 @@ public class HairInfoActivity extends AppCompatActivity {
         String hairTexture = hairTextureInput.getText().toString().trim();
         String hairConcerns = hairConcernsInput.getText().toString().trim();
 
-        userRef.child("hairStyle").setValue(hairStyle);
-        userRef.child("hairQuality").setValue(hairQuality);
-        userRef.child("hairLength").setValue(hairLength);
-        userRef.child("hairColor").setValue(hairColor);
-        userRef.child("hairTexture").setValue(hairTexture);
-        userRef.child("hairConcerns").setValue(hairConcerns);
+        java.util.Map<String, Object> updates = new java.util.HashMap<>();
+        updates.put("hairStyle", hairStyle);
+        updates.put("hairQuality", hairQuality);
+        updates.put("hairLength", hairLength);
+        updates.put("hairColor", hairColor);
+        updates.put("hairTexture", hairTexture);
+        updates.put("hairConcerns", hairConcerns);
 
-        Toast.makeText(this, "Hair information saved!", Toast.LENGTH_SHORT).show();
-        finish();
+        userRef.updateChildren(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Hair information saved successfully");
+                    Toast.makeText(HairInfoActivity.this, "Hair information saved!", Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error saving hair information: " + e.getMessage());
+                    Toast.makeText(HairInfoActivity.this, "Error saving hair information: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
     }
 } 
