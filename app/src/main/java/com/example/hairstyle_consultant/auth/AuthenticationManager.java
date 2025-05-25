@@ -2,6 +2,7 @@ package com.example.hairstyle_consultant.auth;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -26,62 +27,137 @@ import com.google.android.gms.security.ProviderInstaller;
 public class AuthenticationManager {
     private static final String TAG = "AuthenticationManager";
     private static final String DATABASE_URL = "https://hairstyleconsultant-default-rtdb.asia-southeast1.firebasedatabase.app/";
-    private FirebaseAuth mAuth;
-    private DatabaseReference mDatabase;
-    private Context context;
+    private static AuthenticationManager instance;
+    private FirebaseAuth auth;
+    private FirebaseDatabase database;
     private boolean isInitialized = false;
 
-    public AuthenticationManager(Context context) {
-        this.context = context;
-        initialize();
+    private AuthenticationManager() {
+        // Private constructor to prevent instantiation
     }
 
-    private void initialize() {
+    public static synchronized AuthenticationManager getInstance() {
+        if (instance == null) {
+            instance = new AuthenticationManager();
+        }
+        return instance;
+    }
+
+    public void initialize(Context context) {
+        if (isInitialized) {
+            return;
+        }
+
         try {
-            // Initialize Firebase Auth
-            mAuth = FirebaseAuth.getInstance();
+            // Initialize Firebase Auth first
+            auth = FirebaseAuth.getInstance();
             
-            // Enable persistence BEFORE getting database instance
+            // Enable offline persistence for Firebase Database
             FirebaseDatabase.getInstance().setPersistenceEnabled(true);
             
-            // Initialize Firebase Database with the correct region URL
-            FirebaseDatabase database = FirebaseDatabase.getInstance(DATABASE_URL);
-            mDatabase = database.getReference();
-            mDatabase.keepSynced(true);
+            // Initialize Firebase Database with the correct URL
+            database = FirebaseDatabase.getInstance(DATABASE_URL);
             
-            // Initialize security provider in background
+            // Set up security provider in background
             new Thread(() -> {
                 try {
-                    ProviderInstaller.installIfNeeded(context);
-                    Log.d(TAG, "Security provider installed successfully");
+                    ProviderInstaller.installIfNeededAsync(context, new ProviderInstaller.ProviderInstallListener() {
+                        @Override
+                        public void onProviderInstalled() {
+                            Log.d("AuthManager", "Security provider installed successfully");
+                        }
+
+                        @Override
+                        public void onProviderInstallFailed(int errorCode, Intent recoveryIntent) {
+                            Log.e("AuthManager", "Security provider installation failed: " + errorCode);
+                        }
+                    });
                 } catch (Exception e) {
-                    Log.e(TAG, "Error installing security provider", e);
+                    Log.e("AuthManager", "Error installing security provider: " + e.getMessage());
                 }
             }).start();
-            
+
             isInitialized = true;
-            Log.d(TAG, "AuthenticationManager initialized");
-            Log.d(TAG, "Database URL: " + DATABASE_URL);
+            Log.d("AuthManager", "AuthenticationManager initialized successfully");
         } catch (Exception e) {
-            Log.e(TAG, "Error initializing AuthenticationManager", e);
-            isInitialized = false;
+            Log.e("AuthManager", "Error initializing AuthenticationManager: " + e.getMessage());
+            throw new RuntimeException("Failed to initialize AuthenticationManager", e);
+        }
+    }
+
+    public void logout() {
+        if (!isInitialized) {
+            Log.e("AuthManager", "Cannot logout: AuthenticationManager not initialized");
+            return;
+        }
+        
+        try {
+            if (auth != null) {
+                auth.signOut();
+                Log.d("AuthManager", "User logged out successfully");
+            } else {
+                Log.e("AuthManager", "Cannot logout: FirebaseAuth is null");
+            }
+        } catch (Exception e) {
+            Log.e("AuthManager", "Error during logout: " + e.getMessage());
         }
     }
 
     public FirebaseUser getCurrentUser() {
         if (!isInitialized) {
-            Log.w(TAG, "AuthenticationManager not initialized");
+            Log.e("AuthManager", "Cannot get current user: AuthenticationManager not initialized");
             return null;
         }
+        
         try {
-            return mAuth.getCurrentUser();
+            return auth != null ? auth.getCurrentUser() : null;
         } catch (Exception e) {
-            Log.e(TAG, "Error getting current user", e);
+            Log.e("AuthManager", "Error getting current user: " + e.getMessage());
             return null;
         }
     }
 
-    public void registerUser(String email, String password, String fullName, String phoneNumber, OnAuthCompleteListener listener) {
+    public void loginUser(String email, String password, OnAuthResultListener listener) {
+        if (!isInitialized) {
+            Log.e("AuthManager", "Cannot login: AuthenticationManager not initialized");
+            if (listener != null) {
+                listener.onFailure(new Exception("Authentication not initialized"));
+            }
+            return;
+        }
+
+        try {
+            auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = auth.getCurrentUser();
+                        if (user != null) {
+                            Log.d("AuthManager", "User logged in successfully: " + user.getUid());
+                            if (listener != null) {
+                                listener.onSuccess(user);
+                            }
+                        } else {
+                            Log.e("AuthManager", "Login successful but user is null");
+                            if (listener != null) {
+                                listener.onFailure(new Exception("User is null after successful login"));
+                            }
+                        }
+                    } else {
+                        Log.e("AuthManager", "Login failed: " + task.getException().getMessage());
+                        if (listener != null) {
+                            listener.onFailure(task.getException());
+                        }
+                    }
+                });
+        } catch (Exception e) {
+            Log.e("AuthManager", "Error during login: " + e.getMessage());
+            if (listener != null) {
+                listener.onFailure(e);
+            }
+        }
+    }
+
+    public void registerUser(Context context, String email, String password, String fullName, String phoneNumber, OnAuthCompleteListener listener) {
         if (!isInitialized) {
             Log.e(TAG, "Cannot register user: AuthenticationManager not initialized");
             listener.onFailure("Authentication system not initialized");
@@ -93,11 +169,11 @@ public class AuthenticationManager {
         Log.d(TAG, "Full Name: " + fullName);
         Log.d(TAG, "Phone: " + phoneNumber);
 
-        mAuth.createUserWithEmailAndPassword(email, password)
+        auth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener((Activity) context, task -> {
                     if (task.isSuccessful()) {
                         Log.i(TAG, "Firebase Auth: User creation successful");
-                        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                        FirebaseUser firebaseUser = auth.getCurrentUser();
                         if (firebaseUser != null) {
                             Log.d(TAG, "Firebase Auth: User ID: " + firebaseUser.getUid());
                             User user = new User(firebaseUser.getUid(), email, fullName, phoneNumber);
@@ -131,13 +207,13 @@ public class AuthenticationManager {
         Log.d(TAG, "Phone: " + user.getPhoneNumber());
 
         try {
-            DatabaseReference userRef = mDatabase.child("users").child(user.getUserId());
+            DatabaseReference userRef = database.getReference().child("users").child(user.getUserId());
             Log.d(TAG, "Database path: " + userRef.toString());
 
             userRef.setValue(user)
                     .addOnSuccessListener(aVoid -> {
                         Log.i(TAG, "Database: User data saved successfully");
-                        listener.onSuccess(mAuth.getCurrentUser());
+                        listener.onSuccess(auth.getCurrentUser());
                     })
                     .addOnFailureListener(e -> {
                         Log.e(TAG, "Database: Failed to save user data", e);
@@ -152,54 +228,13 @@ public class AuthenticationManager {
         }
     }
 
-    public void loginUser(String email, String password, OnAuthCompleteListener listener) {
-        if (!isInitialized) {
-            Log.e(TAG, "Cannot login: AuthenticationManager not initialized");
-            listener.onFailure("Authentication system not initialized");
-            return;
-        }
-
-        Log.d(TAG, "Starting login process");
-        Log.d(TAG, "Email: " + email);
-
-        mAuth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener((Activity) context, task -> {
-                    if (task.isSuccessful()) {
-                        Log.i(TAG, "Login successful");
-                        FirebaseUser user = mAuth.getCurrentUser();
-                        if (user != null) {
-                            Log.d(TAG, "User ID: " + user.getUid());
-                            listener.onSuccess(user);
-                        } else {
-                            Log.e(TAG, "User is null after successful login");
-                            listener.onFailure("Login failed: User object is null");
-                        }
-                    } else {
-                        String errorMessage = "Login failed";
-                        if (task.getException() instanceof FirebaseAuthInvalidCredentialsException) {
-                            errorMessage = "Invalid email or password";
-                        } else if (task.getException() instanceof FirebaseAuthInvalidUserException) {
-                            errorMessage = "No account found with this email";
-                        } else if (task.getException() != null) {
-                            errorMessage = task.getException().getMessage();
-                        }
-                        Log.e(TAG, "Login failed - " + errorMessage);
-                        listener.onFailure(errorMessage);
-                    }
-                });
-    }
-
-    public void signOut() {
-        if (!isInitialized) {
-            Log.e(TAG, "Cannot sign out: AuthenticationManager not initialized");
-            return;
-        }
-        Log.d(TAG, "Signing out user");
-        mAuth.signOut();
-    }
-
     public interface OnAuthCompleteListener {
         void onSuccess(FirebaseUser user);
         void onFailure(String errorMessage);
+    }
+
+    public interface OnAuthResultListener {
+        void onSuccess(FirebaseUser user);
+        void onFailure(Exception e);
     }
 } 

@@ -39,7 +39,8 @@ public class RegisterActivity extends AppCompatActivity {
             });
 
             // Initialize AuthenticationManager
-            authManager = new AuthenticationManager(this);
+            authManager = AuthenticationManager.getInstance();
+            authManager.initialize(this);
             Log.d(TAG, "AuthenticationManager initialized");
 
             // Initialize views
@@ -193,7 +194,7 @@ public class RegisterActivity extends AppCompatActivity {
         Log.d(TAG, "Phone: " + phoneNumber);
 
         try {
-            authManager.registerUser(email, password, fullName, phoneNumber, new AuthenticationManager.OnAuthCompleteListener() {
+            authManager.registerUser(this, email, password, fullName, phoneNumber, new AuthenticationManager.OnAuthCompleteListener() {
                 @Override
                 public void onSuccess(FirebaseUser user) {
                     Log.i(TAG, "User registration successful");

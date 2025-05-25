@@ -35,7 +35,8 @@ public class LoginActivity extends AppCompatActivity {
         passwordLayout = findViewById(R.id.passwordLayout);
 
         // Initialize AuthenticationManager
-        authManager = new AuthenticationManager(this);
+        authManager = AuthenticationManager.getInstance();
+        authManager.initialize(this);
 
         // Set click listeners
         loginButton.setOnClickListener(new View.OnClickListener() {
@@ -88,7 +89,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void loginUser(String email, String password) {
-        authManager.loginUser(email, password, new AuthenticationManager.OnAuthCompleteListener() {
+        authManager.loginUser(email, password, new AuthenticationManager.OnAuthResultListener() {
             @Override
             public void onSuccess(FirebaseUser user) {
                 Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
@@ -99,8 +100,12 @@ public class LoginActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(String errorMessage) {
+            public void onFailure(Exception e) {
                 loginButton.setEnabled(true);
+                String errorMessage = e.getMessage();
+                if (errorMessage == null) {
+                    errorMessage = "Login failed. Please try again.";
+                }
                 Toast.makeText(LoginActivity.this, errorMessage, Toast.LENGTH_LONG).show();
             }
         });
