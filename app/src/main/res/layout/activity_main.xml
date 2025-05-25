@@ -76,6 +76,13 @@
                         android:text="View Profile"
                         app:icon="@android:drawable/ic_menu_myplaces"/>
 
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/hairInfoButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Hair Info"
+                        app:icon="@android:drawable/ic_menu_edit"/>
+
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>

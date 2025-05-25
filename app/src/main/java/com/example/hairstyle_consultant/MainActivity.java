@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     private Button productsButton;
     private Button profileButton;
     private Button logoutButton;
+    private Button hairInfoButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
         productsButton = findViewById(R.id.productsButton);
         profileButton = findViewById(R.id.profileButton);
         logoutButton = findViewById(R.id.logoutButton);
+        hairInfoButton = findViewById(R.id.hairInfoButton);
     }
 
     private void loadUserData(String userId) {
@@ -116,6 +118,10 @@ public class MainActivity extends AppCompatActivity {
         profileButton.setOnClickListener(v -> {
             // TODO: Implement profile activity
             Toast.makeText(this, "Profile feature coming soon!", Toast.LENGTH_SHORT).show();
+        });
+
+        hairInfoButton.setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, HairInfoActivity.class));
         });
 
         logoutButton.setOnClickListener(v -> {

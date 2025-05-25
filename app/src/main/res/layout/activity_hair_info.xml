@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <EditText
+        android:id="@+id/hairStyleInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Hair Style"/>
+
+    <EditText
+        android:id="@+id/hairQualityInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Hair Quality"/>
+
+    <EditText
+        android:id="@+id/hairLengthInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Hair Length"/>
+
+    <EditText
+        android:id="@+id/hairColorInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Hair Color"/>
+
+    <EditText
+        android:id="@+id/hairTextureInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Hair Texture"/>
+
+    <EditText
+        android:id="@+id/hairConcernsInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Hair Concerns"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/saveHairInfoButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Save Hair Info"
+        app:icon="@android:drawable/ic_menu_save"
+        android:layout_marginTop="24dp"/>
+
+</LinearLayout> 

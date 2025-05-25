@@ -5,6 +5,12 @@ public class User {
     private String email;
     private String fullName;
     private String phoneNumber;
+    private String hairStyle;
+    private String hairQuality;
+    private String hairLength;
+    private String hairColor;
+    private String hairTexture;
+    private String hairConcerns;
 
     // Default constructor required for Firebase
     public User() {
@@ -48,5 +54,53 @@ public class User {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getHairStyle() {
+        return hairStyle;
+    }
+
+    public void setHairStyle(String hairStyle) {
+        this.hairStyle = hairStyle;
+    }
+
+    public String getHairQuality() {
+        return hairQuality;
+    }
+
+    public void setHairQuality(String hairQuality) {
+        this.hairQuality = hairQuality;
+    }
+
+    public String getHairLength() {
+        return hairLength;
+    }
+
+    public void setHairLength(String hairLength) {
+        this.hairLength = hairLength;
+    }
+
+    public String getHairColor() {
+        return hairColor;
+    }
+
+    public void setHairColor(String hairColor) {
+        this.hairColor = hairColor;
+    }
+
+    public String getHairTexture() {
+        return hairTexture;
+    }
+
+    public void setHairTexture(String hairTexture) {
+        this.hairTexture = hairTexture;
+    }
+
+    public String getHairConcerns() {
+        return hairConcerns;
+    }
+
+    public void setHairConcerns(String hairConcerns) {
+        this.hairConcerns = hairConcerns;
     }
 } 
