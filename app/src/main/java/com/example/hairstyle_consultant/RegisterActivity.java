@@ -29,7 +29,7 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate: Starting registration activity");
         try {
-            setContentView(R.layout.activity_register);
+        setContentView(R.layout.activity_register);
 
             // Initialize back button
             ImageButton backButton = findViewById(R.id.backButton);
@@ -38,7 +38,7 @@ public class RegisterActivity extends AppCompatActivity {
                 finish();
             });
 
-            // Initialize AuthenticationManager
+        // Initialize AuthenticationManager
             authManager = AuthenticationManager.getInstance();
             authManager.initialize(this);
             Log.d(TAG, "AuthenticationManager initialized");
@@ -71,7 +71,7 @@ public class RegisterActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.e(TAG, "Error initializing views: " + e.getMessage(), e);
             throw e;
-        }
+            }
     }
 
     private void setupRegisterButton() {
@@ -195,29 +195,29 @@ public class RegisterActivity extends AppCompatActivity {
 
         try {
             authManager.registerUser(this, email, password, fullName, phoneNumber, new AuthenticationManager.OnAuthCompleteListener() {
-                @Override
-                public void onSuccess(FirebaseUser user) {
+            @Override
+            public void onSuccess(FirebaseUser user) {
                     Log.i(TAG, "User registration successful");
                     Log.i(TAG, "User UID: " + user.getUid());
                     Log.i(TAG, "User Email: " + user.getEmail());
                     
-                    Toast.makeText(RegisterActivity.this, "Registration successful", Toast.LENGTH_SHORT).show();
+                Toast.makeText(RegisterActivity.this, "Registration successful", Toast.LENGTH_SHORT).show();
                     
                     try {
-                        // Navigate to main activity
+                // Navigate to main activity
                         Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);
                         Log.d(TAG, "Navigation to MainActivity successful");
-                        finish();
+                finish();
                     } catch (Exception e) {
                         Log.e(TAG, "Error navigating to MainActivity: " + e.getMessage(), e);
                         Toast.makeText(RegisterActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     }
-                }
+            }
 
-                @Override
-                public void onFailure(String errorMessage) {
+            @Override
+            public void onFailure(String errorMessage) {
                     Log.e(TAG, "Registration failed: " + errorMessage);
                     registerButton.setEnabled(true);
                     
@@ -240,7 +240,7 @@ public class RegisterActivity extends AppCompatActivity {
             Log.e(TAG, "Error in registerUser: " + e.getMessage(), e);
             registerButton.setEnabled(true);
             Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
+            }
     }
 
     @Override
