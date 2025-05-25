@@ -46,30 +46,29 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Initialize views
-        initializeViews();
-        
         // Initialize AuthenticationManager
-        authManager = new AuthenticationManager(this);
-        
+        authManager = AuthenticationManager.getInstance();
+        authManager.initialize(this);
+
         // Check if user is logged in
         FirebaseUser currentUser = authManager.getCurrentUser();
         if (currentUser == null) {
-            // If not logged in, redirect to login
-            startActivity(new Intent(this, LoginActivity.class));
+            // If not logged in, redirect to login screen
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
             finish();
             return;
         }
 
-        // Load user data
-        loadUserData(currentUser.getUid());
+        // Initialize views
+        initializeViews();
+        setupClickListeners();
+        loadUserData(currentUser);
 
         // Initialize the product database with sample data
         DatabaseInitializer databaseInitializer = new DatabaseInitializer();
         databaseInitializer.initializeProducts();
-
-        // Set up click listeners
-        setupClickListeners();
     }
 
     private void initializeViews() {
@@ -80,10 +79,10 @@ public class MainActivity extends AppCompatActivity {
         logoutButton = findViewById(R.id.logoutButton);
     }
 
-    private void loadUserData(String userId) {
+    private void loadUserData(FirebaseUser currentUser) {
         DatabaseReference userRef = FirebaseDatabase.getInstance()
                 .getReference("users")
-                .child(userId);
+                .child(currentUser.getUid());
 
         userRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -119,8 +118,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         logoutButton.setOnClickListener(v -> {
-            authManager.signOut();
-            startActivity(new Intent(MainActivity.this, LoginActivity.class));
+            authManager.logout();
+            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
             finish();
         });
     }
